@@ -231,18 +231,44 @@ namespace ReadSens
             prviIO = JsonConvert.DeserializeObject<List<Parametar>>(json);
 
 
+            //********************** FLAGS ******************************//
+            bool flag_radStanice1 = false, flag_radStanice2 = false, flag_radStanice3 = false, flag_radStanice4 = false;
+            bool flag_vakum1 = false, flag_vakum2 = false;
+            bool flag_traka = false, flag_hvataljka = false;
+
             //**********************   STANICA 1   **********************//
             byte[] bit_PrviModul_Izlaz0 = ValueToBits(prviIO[0].izlaz0);
-            
+
+
+            byte[] maskiranRadStanice1 = Masking(bit_PrviModul_Izlaz0, maskaRadStanice);
+            byte vrednostRadStanice1 = ValueFromBits(maskiranRadStanice1);
+            if (vrednostRadStanice1 == 1 && flag_radStanice1 == true)
+            {
+                flag_radStanice1 = false;
+                WriteValue("var1", "radi");
+
+                int cnt = 0;
+                cnt++;
+                WriteValue("stringara", cnt.ToString());
+            }
+            else
+            {
+                flag_radStanice1 = true;
+                WriteValue("var1", "stoji");
+
+                WriteValue("stringara", flag_radStanice1.ToString());
+            }
 
             byte[] maskiranVakum1 = Masking(bit_PrviModul_Izlaz0, maskaVakum);
             byte vrednostVakum1 = ValueFromBits(maskiranVakum1);
-            if(vrednostVakum1 == 128)
+            if(vrednostVakum1 == 128 && flag_vakum1 == true)
             {
+                flag_vakum1 = false;
                 //WriteValue("testVar", "1");
             }
             else
             {
+                flag_vakum1 = true;
                 //WriteValue("testVar", "0");
             }
 
@@ -273,14 +299,29 @@ namespace ReadSens
             byte[] bit_PrviModul_Izlaz1 = ValueToBits(prviIO[0].izlaz1);
 
 
-            byte[] maskiranVakum2 = Masking(bit_PrviModul_Izlaz1, maskaVakum);
-            byte vrednostVakum2 = ValueFromBits(maskiranVakum2);
-            if (vrednostVakum2 == 128)
+            byte[] maskiranRadStanice2 = Masking(bit_PrviModul_Izlaz1, maskaRadStanice);
+            byte vrednostRadStanice2 = ValueFromBits(maskiranRadStanice2);
+            if (vrednostRadStanice2 == 1 && flag_radStanice2 == true)
             {
+                flag_radStanice2 = false;
                 //WriteValue("", "1");
             }
             else
             {
+                flag_radStanice2 = true;
+                //WriteValue("", "0");
+            }
+
+            byte[] maskiranVakum2 = Masking(bit_PrviModul_Izlaz1, maskaVakum);
+            byte vrednostVakum2 = ValueFromBits(maskiranVakum2);
+            if (vrednostVakum2 == 128 && flag_vakum2 == true)
+            {
+                flag_vakum2 = false;
+                //WriteValue("", "1");
+            }
+            else
+            {
+                flag_vakum1 = true;
                 //WriteValue("", "0");
             }
 
@@ -311,6 +352,19 @@ namespace ReadSens
             byte[] bit_DrugiModul_Izlaz0 = ValueToBits(prviIO[1].izlaz0);
 
 
+            byte[] maskiranRadStanice3 = Masking(bit_DrugiModul_Izlaz0, maskaRadStanice);
+            byte vrednostRadStanice3 = ValueFromBits(maskiranRadStanice3);
+            if (vrednostRadStanice3 == 1 && flag_radStanice3 == true)
+            {
+                flag_radStanice3 = false;
+                //WriteValue("", "1");
+            }
+            else
+            {
+                flag_radStanice3 = true;
+                //WriteValue("", "0");
+            }
+
             byte[] maskiranKran = Masking(bit_DrugiModul_Izlaz0, maskaKran);
             byte vrednostKran = ValueFromBits(maskiranKran);
             if (vrednostKran == 192)
@@ -324,12 +378,14 @@ namespace ReadSens
 
             byte[] maskiranHvataljka = Masking(bit_DrugiModul_Izlaz0, maskaHvataljka_i_Lift);
             byte vrednostHvataljka = ValueFromBits(maskiranHvataljka);
-            if (vrednostHvataljka == 12)
+            if (vrednostHvataljka == 12 && flag_hvataljka == true)
             {
+                flag_hvataljka = false;
                //WriteValue("", "1");
             }
             else
             {
+                flag_hvataljka = true;
                 //WriteValue("", "0");
             }
 
@@ -338,19 +394,42 @@ namespace ReadSens
             byte[] bit_DrugiModul_Izlaz1 = ValueToBits(prviIO[1].izlaz1);
 
 
+            byte[] maskiranRadStanice4 = Masking(bit_DrugiModul_Izlaz1, maskaRadStanice);
+            byte vrednostRadStanice4 = ValueFromBits(maskiranRadStanice4);
+            if (vrednostRadStanice4 == 1 && flag_radStanice4 == true)
+            {
+                flag_radStanice4 = false;
+                //WriteValue("", "1");
+            }
+            else
+            {
+                flag_radStanice4 = true;
+                //WriteValue("", "0");
+            }
+
             byte[] maskiranTraka = Masking(bit_DrugiModul_Izlaz1, maskaTraka);
             byte vrednostTraka = ValueFromBits(maskiranTraka);
-            if (vrednostTraka == 16)
+            if (vrednostTraka == 16 && flag_traka == true)
             {
+                flag_traka = false;
                 //WriteValue("testVar", "1");
             }
             else
             {
+                flag_traka = true;
                 //WriteValue("testVar", "0");
             }
 
-           //***********************************************************//
+            //***********************  TEST  ********************************//
 
+            /*DateTime trenutnoVreme = DateTime.Now;
+                DateTime drugoVreme = trenutnoVreme.AddHours(6);
+
+                TimeSpan oduzeto = drugoVreme.Subtract(trenutnoVreme);
+                
+
+                Console.WriteLine(oduzeto.TotalMinutes);
+                Console.WriteLine(trenutnoVreme.ToString("yyyy-MM-dd"));*/
 
 
             /*byte maskedValue = ValueFromBits(maskiranRadStanice);
@@ -360,7 +439,9 @@ namespace ReadSens
             }*/
 
 
-            //GET METHOD
+
+            //******************* GET METHOD *************************//
+
             /*using (var client = new HttpClient())
             {
                 var endpoint = new Uri("http://mehatronika.ddns.net:40001/iot/iotstanjemodula");
