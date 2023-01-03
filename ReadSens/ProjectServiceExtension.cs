@@ -114,8 +114,8 @@ namespace ReadSens
                 string json = new JavaScriptSerializer().Serialize(new
                 {
                     idmodula = query,
-                    start = startDate,
-                    end = endDate
+                    vod = startDate,
+                    vdo = endDate
                 });
 
                 streamWriter.Write(json);
@@ -139,8 +139,8 @@ namespace ReadSens
                 string json = new JavaScriptSerializer().Serialize(new
                 {
                     idmodula = query,
-                    start = startDate,
-                    end = endDate
+                    vod = startDate,
+                    vdo = endDate
                 });
 
                 streamWriter.Write(json);
@@ -207,7 +207,7 @@ namespace ReadSens
             public byte ulaz1 { get; set; }
             public byte izlaz0 { get; set; }
             public byte izlaz1 { get; set; }
-            public string time { get; set; }
+            public DateTime time { get; set; }
         };
 
 
@@ -215,7 +215,7 @@ namespace ReadSens
         {
 
             project = context;
-
+            
             //maske
             byte[] maskaRadStanice = new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 };
             byte[] maskaVakum = new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 };
@@ -226,50 +226,76 @@ namespace ReadSens
             byte[] maskaHvataljka_i_Lift = new byte[] { 0, 0, 0, 0, 1, 1, 0, 0 };
             byte[] maskaTraka = new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 };
 
+
+            //****** JSON objekti IO stanja ******//
             string json = ServerResponse("");
             List<Parametar> prviIO = new List<Parametar>();
             prviIO = JsonConvert.DeserializeObject<List<Parametar>>(json);
 
 
+
+            //****** JSON objekti sa vremenom ******//
+            DateTime trenutnoVreme = DateTime.Now;
+            string trenutniDatum = trenutnoVreme.ToString("yyyy-MM-dd");
+            DateTime fiveDaysAgo = DateTime.Now.AddDays(-5);
+            string fiveDaysAgoDatum = fiveDaysAgo.ToString("yyyy-MM-dd");
+
+            string modul1_Time = OutputHistory("1", fiveDaysAgoDatum, trenutniDatum);
+            string modul2_Time = OutputHistory("2", fiveDaysAgoDatum, trenutniDatum);
+            List<Parametar> prviIO_vreme = new List<Parametar>();
+            List<Parametar> drugiIO_vreme = new List<Parametar>();
+            prviIO_vreme = JsonConvert.DeserializeObject<List<Parametar>>(modul1_Time);
+            drugiIO_vreme = JsonConvert.DeserializeObject<List<Parametar>>(modul2_Time);
+
             //********************** FLAGS ******************************//
-            bool flag_radStanice1 = false, flag_radStanice2 = false, flag_radStanice3 = false, flag_radStanice4 = false;
+            bool flag_radStanice1 = true, flag_radStanice2 = false, flag_radStanice3 = false, flag_radStanice4 = false; //flag_radStanice1 = false bi trebao da bude
             bool flag_vakum1 = false, flag_vakum2 = false;
             bool flag_traka = false, flag_hvataljka = false;
 
             //**********************   STANICA 1   **********************//
             byte[] bit_PrviModul_Izlaz0 = ValueToBits(prviIO[0].izlaz0);
+            byte[] bit_PrviModulVreme_Izlaz0 = ValueToBits(prviIO_vreme[prviIO_vreme.Count - 1].izlaz0);
 
 
-            byte[] maskiranRadStanice1 = Masking(bit_PrviModul_Izlaz0, maskaRadStanice);
+            byte[] maskiranRadStanice1 = Masking(bit_PrviModulVreme_Izlaz0, maskaRadStanice);
             byte vrednostRadStanice1 = ValueFromBits(maskiranRadStanice1);
             if (vrednostRadStanice1 == 1 && flag_radStanice1 == true)
             {
                 flag_radStanice1 = false;
-                WriteValue("var1", "radi");
+                WriteValue("grr", "radi");
 
-                int cnt = 0;
-                cnt++;
-                WriteValue("stringara", cnt.ToString());
+                //racunanje vremena i upis vrednosti minuta i sekundi u promenljive
+                TimeSpan vremeRadStanice1 = trenutnoVreme.Subtract(prviIO_vreme[prviIO_vreme.Count - 1].time);
+                WriteValue("stringara", vremeRadStanice1.Seconds.ToString());
+                WriteValue("var1", vremeRadStanice1.Minutes.ToString());
             }
             else
             {
                 flag_radStanice1 = true;
-                WriteValue("var1", "stoji");
+                WriteValue("grr", "stoji");
 
-                WriteValue("stringara", flag_radStanice1.ToString());
+                WriteValue("stringara", "0");
+                WriteValue("var1", "0");
             }
 
-            byte[] maskiranVakum1 = Masking(bit_PrviModul_Izlaz0, maskaVakum);
+            byte[] maskiranVakum1 = Masking(bit_PrviModulVreme_Izlaz0, maskaVakum);
             byte vrednostVakum1 = ValueFromBits(maskiranVakum1);
             if(vrednostVakum1 == 128 && flag_vakum1 == true)
             {
                 flag_vakum1 = false;
                 //WriteValue("testVar", "1");
+
+                TimeSpan vremeVakum1 = trenutnoVreme.Subtract(prviIO_vreme[prviIO_vreme.Count - 1].time); //mogao bi se desiti bug da pri promjeni neke druge vrednosti uzme poslednje vreme
+                //WriteValue("", vremeVakum1.Seconds.ToString());                                         //probaj naci nacin da sacuva samo prvu vrednost koju preuzme
+                //WriteValue("", vremeVakum1.Minutes.ToString());
             }
             else
             {
                 flag_vakum1 = true;
                 //WriteValue("testVar", "0");
+
+                //WriteValue("", "0");
+                //WriteValue("", "0");
             }
 
             byte[] maskiranCilindarMagacina = Masking(bit_PrviModul_Izlaz0, maskaCilindarMagacina);
@@ -297,31 +323,46 @@ namespace ReadSens
 
             //**********************   STANICA 2   **********************//
             byte[] bit_PrviModul_Izlaz1 = ValueToBits(prviIO[0].izlaz1);
+            byte[] bit_PrviModulVreme_Izlaz1 = ValueToBits(prviIO_vreme[prviIO_vreme.Count - 1].izlaz1);
 
 
-            byte[] maskiranRadStanice2 = Masking(bit_PrviModul_Izlaz1, maskaRadStanice);
+            byte[] maskiranRadStanice2 = Masking(bit_PrviModulVreme_Izlaz1, maskaRadStanice);
             byte vrednostRadStanice2 = ValueFromBits(maskiranRadStanice2);
             if (vrednostRadStanice2 == 1 && flag_radStanice2 == true)
             {
                 flag_radStanice2 = false;
                 //WriteValue("", "1");
+
+                TimeSpan vremeRadStanice2 = trenutnoVreme.Subtract(prviIO_vreme[prviIO_vreme.Count - 1].time);
+                //WriteValue("", vremeRadStanice2.Seconds.ToString());
+                //WriteValue("", vremeRadStanice2.Minutes.ToString());
             }
             else
             {
                 flag_radStanice2 = true;
                 //WriteValue("", "0");
+
+                //WriteValue("", "0");
+                //WriteValue("", "0");
             }
 
-            byte[] maskiranVakum2 = Masking(bit_PrviModul_Izlaz1, maskaVakum);
+            byte[] maskiranVakum2 = Masking(bit_PrviModulVreme_Izlaz1, maskaVakum);
             byte vrednostVakum2 = ValueFromBits(maskiranVakum2);
             if (vrednostVakum2 == 128 && flag_vakum2 == true)
             {
                 flag_vakum2 = false;
                 //WriteValue("", "1");
+
+                TimeSpan vremeVakum2 = trenutnoVreme.Subtract(prviIO_vreme[prviIO_vreme.Count - 1].time);
+                //WriteValue("", vremeVakum2.Seconds.ToString());
+                //WriteValue("", vremeVakum2.Minutes.ToString());
             }
             else
             {
                 flag_vakum1 = true;
+                //WriteValue("", "0");
+
+                //WriteValue("", "0");
                 //WriteValue("", "0");
             }
 
@@ -350,18 +391,26 @@ namespace ReadSens
 
             //**********************   STANICA 3   **********************//
             byte[] bit_DrugiModul_Izlaz0 = ValueToBits(prviIO[1].izlaz0);
+            byte[] bit_DrugiModulVreme_Izlaz0 = ValueToBits(drugiIO_vreme[drugiIO_vreme.Count - 1].izlaz0);
 
 
-            byte[] maskiranRadStanice3 = Masking(bit_DrugiModul_Izlaz0, maskaRadStanice);
+            byte[] maskiranRadStanice3 = Masking(bit_DrugiModulVreme_Izlaz0, maskaRadStanice);
             byte vrednostRadStanice3 = ValueFromBits(maskiranRadStanice3);
             if (vrednostRadStanice3 == 1 && flag_radStanice3 == true)
             {
                 flag_radStanice3 = false;
                 //WriteValue("", "1");
+
+                TimeSpan vremeRadStanice3 = trenutnoVreme.Subtract(drugiIO_vreme[drugiIO_vreme.Count - 1].time);
+                //WriteValue("", vremeRadStanice3.Seconds.ToString());
+                //WriteValue("", vremeRadStanice3.Minutes.ToString());
             }
             else
             {
                 flag_radStanice3 = true;
+                //WriteValue("", "0");
+
+                //WriteValue("", "0");
                 //WriteValue("", "0");
             }
 
@@ -392,18 +441,26 @@ namespace ReadSens
 
             //**********************   STANICA 4   **********************//
             byte[] bit_DrugiModul_Izlaz1 = ValueToBits(prviIO[1].izlaz1);
+            byte[] bit_DrugiModulVreme_Izlaz1 = ValueToBits(drugiIO_vreme[drugiIO_vreme.Count - 1].izlaz1);
 
 
-            byte[] maskiranRadStanice4 = Masking(bit_DrugiModul_Izlaz1, maskaRadStanice);
+            byte[] maskiranRadStanice4 = Masking(bit_DrugiModulVreme_Izlaz1, maskaRadStanice);
             byte vrednostRadStanice4 = ValueFromBits(maskiranRadStanice4);
             if (vrednostRadStanice4 == 1 && flag_radStanice4 == true)
             {
                 flag_radStanice4 = false;
                 //WriteValue("", "1");
+
+                TimeSpan vremeRadStanice4 = trenutnoVreme.Subtract(drugiIO_vreme[drugiIO_vreme.Count - 1].time);
+                //WriteValue("", vremeRadStanice4.Seconds.ToString());
+                //WriteValue("", vremeRadStanice4.Minutes.ToString());
             }
             else
             {
                 flag_radStanice4 = true;
+                //WriteValue("", "0");
+
+                //WriteValue("", "0");
                 //WriteValue("", "0");
             }
 
@@ -413,10 +470,17 @@ namespace ReadSens
             {
                 flag_traka = false;
                 //WriteValue("testVar", "1");
+
+                TimeSpan vremeTraka = trenutnoVreme.Subtract(drugiIO_vreme[drugiIO_vreme.Count - 1].time);
+                //WriteValue("", vremeTraka.Seconds.ToString());
+                //WriteValue("", vremeTraka.Minutes.ToString());
             }
             else
             {
                 flag_traka = true;
+                //WriteValue("testVar", "0");
+
+                //WriteValue("testVar", "0");
                 //WriteValue("testVar", "0");
             }
 
